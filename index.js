@@ -1,90 +1,55 @@
-const express = require("express");
-const { buildSchema } = require("graphql");
-const { graphqlHTTP } = require("express-graphql");
-const axios = require("axios");
-const app = express();
+const { ApolloServer, gql } = require("apollo-server");
 
-var message = "hello there...";
-
-const schema = buildSchema(`
-
-    type Mutation{
-        setmessage(newMessage:String):String
-    }
-
-    type Post{
-        userId:Int,
-        id:Int,
-        title:String,
-        body:String
-    }
-
-    type User{
-        name:String,
-        age:Int,
-        college:String
-    }
-
-    type Query{
-        hello: String,
-        welcome(name: String):String,
-        getuser:User,
-        getuserlist:[User],
-        getpost:[Post]
-    }
-`);
-
-const root = {
-  hello: () => {
-    return "Hello world";
+const books = [
+  {
+    title: "The Awakening",
+    author: "Kate Chopin",
   },
-  welcome: (args) => {
-    console.log(args);
-    return `Welcome ${args.name}`;
+  {
+    title: "City of Glass",
+    author: "Paul Auster",
   },
-  getuser: () => {
-    const user = {
-      name: "rohan",
-      age: 25,
-      college: "Modern college",
-    };
-    return user;
-  },
-  getuserlist: () => {
-    const users = [
-      {
-        name: "rohan",
-        age: 25,
-        college: "Modern college",
-      },
-      {
-        name: "sid",
-        age: 23,
-        college: "MIT college",
-      },
-    ];
-    return users;
-  },
-  getpost: async () => {
-    const posts = await axios.get("https://jsonplaceholder.typicode.com/posts");
-    return posts.data;
-  },
-  setmessage: ({ newMessage }) => {
-    message = newMessage;
-    return message;
+];
+
+const typeDefs = gql`
+  type Book {
+    title: String
+    author: String
+  }
+
+  type Query {
+    books: [Book]
+  }
+`;
+
+const resolvers = {
+  Query: {
+    books: () => books,
   },
 };
 
-//graphql endpoint
-app.use(
-  "/graphql",
-  graphqlHTTP({
-    graphiql: true,
-    schema: schema,
-    rootValue: root,
-  })
-);
+const {
+  ApolloServerPluginLandingPageLocalDefault,
+} = require("apollo-server-core");
 
-app.listen(4000, () => {
-  console.log("server running on port 4000");
+// The ApolloServer constructor requires two parameters: your schema
+// definition and your set of resolvers.
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  csrfPrevention: true,
+  cache: "bounded",
+  /**
+   * What's up with this embed: true option?
+   * These are our recommended settings for using AS;
+   * they aren't the defaults in AS3 for backwards-compatibility reasons but
+   * will be the defaults in AS4. For production environments, use
+   * ApolloServerPluginLandingPageProductionDefault instead.
+   **/
+  plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
+});
+
+// The `listen` method launches a web server.
+server.listen().then(({ url }) => {
+  console.log(`🚀  Server ready at ${url}`);
 });
