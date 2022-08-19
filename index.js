@@ -1,55 +1,19 @@
-const { ApolloServer, gql } = require("apollo-server");
+const express = require("express");
+const { ApolloServer } = require("apollo-server-express");
 
-const books = [
-  {
-    title: "The Awakening",
-    author: "Kate Chopin",
-  },
-  {
-    title: "City of Glass",
-    author: "Paul Auster",
-  },
-];
+const typeDefs = require("./typedefs");
+const resolvers = require("./resolver");
 
-const typeDefs = gql`
-  type Book {
-    title: String
-    author: String
-  }
+async function startApolloServer() {
+  const app = express();
+  const server = new ApolloServer({ typeDefs, resolvers });
 
-  type Query {
-    books: [Book]
-  }
-`;
+  await server.start();
 
-const resolvers = {
-  Query: {
-    books: () => books,
-  },
-};
+  server.applyMiddleware({ app });
+  app.listen({ port: 4000 }, () =>
+    console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
+  );
+}
 
-const {
-  ApolloServerPluginLandingPageLocalDefault,
-} = require("apollo-server-core");
-
-// The ApolloServer constructor requires two parameters: your schema
-// definition and your set of resolvers.
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  csrfPrevention: true,
-  cache: "bounded",
-  /**
-   * What's up with this embed: true option?
-   * These are our recommended settings for using AS;
-   * they aren't the defaults in AS3 for backwards-compatibility reasons but
-   * will be the defaults in AS4. For production environments, use
-   * ApolloServerPluginLandingPageProductionDefault instead.
-   **/
-  plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
-});
-
-// The `listen` method launches a web server.
-server.listen().then(({ url }) => {
-  console.log(`🚀 Server ready at ${url}`);
-});
+startApolloServer();
